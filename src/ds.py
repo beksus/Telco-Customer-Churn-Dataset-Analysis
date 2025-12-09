@@ -12,6 +12,7 @@ and provides comprehensive analysis meeting academic rubric requirements.
 # SECTION 1: IMPORT LIBRARIES
 # ============================================================================
 import os
+import sys
 import time
 import numpy as np
 import pandas as pd
@@ -80,8 +81,15 @@ print("-" * 60)
 # Load the dataset
 print("Loading dataset...")
 data_path = os.path.join(BASE_DIR, 'WA_Fn-UseC_-Telco-Customer-Churn.csv')
-df = pd.read_csv(data_path)
-print(f"✓ Dataset loaded successfully")
+try:
+    df = pd.read_csv(data_path)
+    print(f"✓ Dataset loaded successfully")
+except FileNotFoundError:
+    print(f"✗ ERROR: Dataset not found at '{_rel(data_path)}'. Please ensure the CSV file exists.")
+    sys.exit(1)
+except Exception as e:
+    print(f"✗ ERROR: Failed to load dataset: {e}")
+    sys.exit(1)
 print(f"  Shape: {df.shape[0]} rows, {df.shape[1]} columns")
 
 # Initial exploration
@@ -286,6 +294,14 @@ final_nn_path = os.path.join(MODELS_DIR, 'neural_network_model.keras')
 nn_model.save(final_nn_path)
 print(f"✓ Model saved to '{_rel(final_nn_path)}'")
 
+# Also save in HDF5 format for assignment deliverables
+final_nn_h5_path = os.path.join(MODELS_DIR, 'neural_network_model.h5')
+try:
+    nn_model.save(final_nn_h5_path)
+    print(f"✓ Model saved to '{_rel(final_nn_h5_path)}'")
+except Exception as e:
+    print(f"! Warning: Could not save H5 model due to: {e}")
+
 # ============================================================================
 # SECTION 5: BENCHMARK MODELS
 # ============================================================================
@@ -326,6 +342,14 @@ print(f"✓ Training completed in {rf_training_time:.2f} seconds")
 rf_model_path = os.path.join(MODELS_DIR, 'random_forest_model.pkl')
 joblib.dump(rf_model, rf_model_path)
 print(f"✓ Model saved to '{_rel(rf_model_path)}'")
+
+# Save the best neural network checkpoint in H5 as well (early stopping restored best weights)
+best_nn_h5_path = os.path.join(MODELS_DIR, 'best_neural_network.h5')
+try:
+    nn_model.save(best_nn_h5_path)
+    print(f"✓ Best model (early-stopped) saved to '{_rel(best_nn_h5_path)}'")
+except Exception as e:
+    print(f"! Warning: Could not save best model H5 due to: {e}")
 
 # ============================================================================
 # SECTION 6: MODEL EVALUATION
@@ -442,6 +466,16 @@ print("-" * 60)
 for model_name in ['Logistic Regression', 'Random Forest', 'Neural Network']:
     print(f"\n{model_name}:")
     print(results[model_name]['Classification_Report'])
+
+# Also print numeric confusion matrices for clarity
+print("\nSECTION 4B: CONFUSION MATRICES (NUMERIC)")
+print("-" * 60)
+for model_name in ['Logistic Regression', 'Random Forest', 'Neural Network']:
+    cm = results[model_name]['Confusion_Matrix']
+    tn, fp, fn, tp = results[model_name]['TN'], results[model_name]['FP'], results[model_name]['FN'], results[model_name]['TP']
+    print(f"\n{model_name}:")
+    print(f"Confusion Matrix:\n[[TN FP]\n [FN TP]] = \n{cm}")
+    print(f"TN: {tn}, FP: {fp}, FN: {fn}, TP: {tp}")
 
 # ============================================================================
 # SECTION 8: VISUALIZATIONS
@@ -818,7 +852,9 @@ model_files = [
     'models/logistic_regression_model.pkl',
     'models/random_forest_model.pkl',
     'models/neural_network_model.keras',
-    'models/best_neural_network.keras'
+    'models/best_neural_network.keras',
+    'models/neural_network_model.h5',
+    'models/best_neural_network.h5'
 ]
 for mf in model_files:
     print(f"- {mf}")
