@@ -19,7 +19,7 @@ warnings.filterwarnings("ignore")
 RANDOM_STATE = 42
 
 # --- 1. Load data ---
-DATA_PATH = "WA_Fn-UseC_-Telco-Customer-Churn.csv"
+DATA_PATH = "../WA_Fn-UseC_-Telco-Customer-Churn.csv"
 df = pd.read_csv(DATA_PATH)
 
 # --- 2. Basic cleaning ---
@@ -132,7 +132,7 @@ print("Recall:", recall_score(y_test, y_pred))
 print("F1-score:", f1_score(y_test, y_pred))
 
 # --- 9. Save the trained model ---
-MODEL_PATH = "telco_churn_model.h5"
+MODEL_PATH = "../telco_churn_model.h5"
 model.save(MODEL_PATH)
 print(f"Model saved to {MODEL_PATH}")
 

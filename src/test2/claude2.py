@@ -50,7 +50,7 @@ print()
 print("STEP 1: Data Loading and Exploration")
 print("-" * 90)
 
-DATA_PATH = "WA_Fn-UseC_-Telco-Customer-Churn.csv"
+DATA_PATH = "../WA_Fn-UseC_-Telco-Customer-Churn.csv"
 df = pd.read_csv(DATA_PATH)
 
 print(f"Dataset shape: {df.shape}")
@@ -222,7 +222,7 @@ early_stop = EarlyStopping(
 )
 
 checkpoint = ModelCheckpoint(
-    'best_churn_nn_model.h5',
+    '../best_churn_nn_model.h5',
     monitor='val_loss',
     save_best_only=True,
     verbose=0
@@ -481,7 +481,7 @@ print("Best model checkpoint saved as 'best_churn_nn_model.h5'")
 # Save logistic regression (optional)
 import joblib
 
-joblib.dump(log_reg, 'telco_churn_logistic_regression.pkl')
+joblib.dump(log_reg, '../telco_churn_logistic_regression.pkl')
 print("Logistic Regression saved as 'telco_churn_logistic_regression.pkl'")
 print()
 

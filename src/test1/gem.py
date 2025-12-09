@@ -25,7 +25,7 @@ plt.style.use('ggplot')
 # ==========================================
 # Load the dataset
 # NOTE: Replace 'WA_Fn-UseC_-Telco-Customer-Churn.csv' with your actual file name
-df = pd.read_csv('WA_Fn-UseC_-Telco-Customer-Churn.csv')
+df = pd.read_csv('../WA_Fn-UseC_-Telco-Customer-Churn.csv')
 
 # Drop customerID as it is not needed for prediction
 df.drop('customerID', axis=1, inplace=True)

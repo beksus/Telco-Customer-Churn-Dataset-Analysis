@@ -31,7 +31,7 @@ plt.style.use('ggplot')
 print("Loading Data...")
 try:
     # Load dataset
-    df = pd.read_csv('WA_Fn-UseC_-Telco-Customer-Churn.csv')
+    df = pd.read_csv('../WA_Fn-UseC_-Telco-Customer-Churn.csv')
 
     # Drop irrelevant ID column
     if 'customerID' in df.columns:

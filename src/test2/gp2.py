@@ -39,7 +39,7 @@ from sklearn.metrics import (
 # 1. Load Dataset
 # ---------------------------------------------------------------------------
 
-DATA_PATH = "WA_Fn-UseC_-Telco-Customer-Churn.csv"
+DATA_PATH = "../WA_Fn-UseC_-Telco-Customer-Churn.csv"
 
 print("=== Telco Customer Churn Prediction ===\n")
 print(f"Loading dataset from: {DATA_PATH}\n")

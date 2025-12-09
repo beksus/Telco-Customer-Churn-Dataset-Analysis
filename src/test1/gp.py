@@ -36,7 +36,7 @@ RANDOM_STATE = 42  # for reproducibility
 # ======================
 
 # Change this path if needed
-DATA_PATH = "WA_Fn-UseC_-Telco-Customer-Churn.csv"
+DATA_PATH = "../WA_Fn-UseC_-Telco-Customer-Churn.csv"
 
 print("Loading dataset...")
 df = pd.read_csv(DATA_PATH)
