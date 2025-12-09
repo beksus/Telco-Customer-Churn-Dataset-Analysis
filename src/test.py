@@ -10,6 +10,7 @@ import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+from sklearn.utils import class_weight
 
 # TensorFlow/Keras for the Neural Network
 import tensorflow as tf
@@ -102,14 +103,27 @@ model.compile(optimizer='adam',
 model.summary()
 
 # ==========================================
-# 7. MODEL TRAINING [cite: 39]
+# 7. MODEL TRAINING (UPDATED FOR IMBALANCE)
 # ==========================================
-# Epochs = number of times the model sees the dataset
-# Batch_size = number of samples processed before updating the model
+
+# Calculate weights: This tells the model how much to "pay attention" to each class.
+# Since Churn (1) is rare, it will get a higher weight.
+class_weights_vals = class_weight.compute_class_weight(
+    class_weight='balanced',
+    classes=np.unique(y_train),
+    y=y_train
+)
+
+# Convert to a dictionary format that Keras expects: {0: weight_0, 1: weight_1}
+class_weights_dict = dict(enumerate(class_weights_vals))
+print(f"Class Weights Calculated: {class_weights_dict}")
+
+# Train the model with class_weight parameter added
 history = model.fit(X_train, y_train,
                     validation_split=0.2,
                     epochs=50,
                     batch_size=32,
+                    class_weight=class_weights_dict,  # <--- THIS IS THE KEY UPDATE
                     verbose=1)
 
 # ==========================================
