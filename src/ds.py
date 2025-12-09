@@ -8,6 +8,11 @@ compares it against benchmark models (Logistic Regression, Random Forest),
 and provides comprehensive analysis meeting academic rubric requirements.
 """
 
+#add heatmap nn
+# add distribution of churned vs not churned customers
+# can i have a histplot for distribution of tenure where the y axis is frequency and the x axis is tenure
+
+
 # ============================================================================
 # SECTION 1: IMPORT LIBRARIES
 # ============================================================================
