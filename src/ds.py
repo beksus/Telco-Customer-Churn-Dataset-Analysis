@@ -23,27 +23,24 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # Machine Learning imports
-from sklearn.model_selection import train_test_split, StratifiedKFold
-from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import (accuracy_score, precision_score, recall_score,
                              f1_score, roc_auc_score, confusion_matrix,
                              classification_report, roc_curve)
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.inspection import permutation_importance
 from imblearn.over_sampling import SMOTE
 
 # TensorFlow/Keras imports
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers, callbacks
-from tensorflow.keras.utils import to_categorical
 
 # Additional utilities
 import joblib
 import gc
-from datetime import datetime
-import pickle
+
 
 # Set random seeds for reproducibility
 np.random.seed(42)
@@ -279,7 +276,7 @@ history = nn_model.fit(
     X_train_balanced,
     y_train_balanced,
     validation_data=(X_val_df, y_val),
-    epochs=100,
+    epochs=20,
     batch_size=32,
     callbacks=[early_stopping, checkpoint],
     class_weight=class_weight_dict,
