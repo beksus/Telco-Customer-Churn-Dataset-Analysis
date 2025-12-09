@@ -1,16 +1,16 @@
 Feature,Importance
-tenure,0.14595428881043365
-Contract_Two year,0.10129248103168939
-TotalCharges,0.09462237077316044
-MonthlyCharges,0.07471259986244681
-PaymentMethod_Electronic check,0.06968227224999668
-InternetService_Fiber optic,0.06953531318349172
-OnlineSecurity_Yes,0.05545572327614849
-Contract_One year,0.05247684790857758
-PaperlessBilling_Yes,0.0457398858312059
-TechSupport_Yes,0.037198316178088414
-Dependents_Yes,0.022575350367006652
-Partner_Yes,0.020881960096800288
-OnlineBackup_Yes,0.019705508378142365
-gender_Male,0.01798988260516236
-DeviceProtection_No internet service,0.01645570269638484
+tenure,0.17415777578419342
+TotalCharges,0.1288255055006415
+Contract_Two year,0.09711787317851735
+MonthlyCharges,0.09661604185275394
+InternetService_Fiber optic,0.07649305571362582
+PaymentMethod_Electronic check,0.0743256255241834
+Contract_One year,0.04112979488101289
+PaperlessBilling_Yes,0.03833671151597337
+OnlineSecurity_Yes,0.023524521209377564
+TechSupport_Yes,0.019890447780587853
+DeviceProtection_No internet service,0.01705549527361752
+MultipleLines_Yes,0.01602659079978924
+StreamingTV_No internet service,0.01527801390203126
+gender_Male,0.014800487119843851
+Dependents_Yes,0.013698238731952092

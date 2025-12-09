@@ -51,10 +51,22 @@ import random
 
 random.seed(42)
 
-# Create directories for outputs
-os.makedirs('models', exist_ok=True)
-os.makedirs('visualizations', exist_ok=True)
-os.makedirs('data_outputs', exist_ok=True)
+# Create directories for outputs (relative to this script directory)
+BASE_DIR = os.path.dirname(__file__)
+MODELS_DIR = os.path.join(BASE_DIR, 'models')
+VIZ_DIR = os.path.join(BASE_DIR, 'visualizations')
+DATA_DIR = os.path.join(BASE_DIR, 'data_outputs')
+
+os.makedirs(MODELS_DIR, exist_ok=True)
+os.makedirs(VIZ_DIR, exist_ok=True)
+os.makedirs(DATA_DIR, exist_ok=True)
+
+def _rel(path: str) -> str:
+    """Return path relative to this script directory for pretty printing."""
+    try:
+        return os.path.relpath(path, BASE_DIR)
+    except Exception:
+        return path
 
 # ============================================================================
 # SECTION 2: DATA LOADING AND EXPLORATION
@@ -67,7 +79,8 @@ print("-" * 60)
 
 # Load the dataset
 print("Loading dataset...")
-df = pd.read_csv('WA_Fn-UseC_-Telco-Customer-Churn.csv')
+data_path = os.path.join(BASE_DIR, 'WA_Fn-UseC_-Telco-Customer-Churn.csv')
+df = pd.read_csv(data_path)
 print(f"✓ Dataset loaded successfully")
 print(f"  Shape: {df.shape[0]} rows, {df.shape[1]} columns")
 
@@ -157,17 +170,21 @@ for name, (X_set, y_set) in zip(['Training', 'Validation', 'Test'],
     churn_pct = y_set.mean() * 100
     print(f"  {name}: {y_set.sum()} churned ({churn_pct:.1f}%)")
 
-# 8. Feature Scaling
-print("\n7. Standardizing numerical features...")
+# 8. Feature Scaling (only numerical features as per requirements)
+print("\n7. Standardizing numerical features (tenure, MonthlyCharges, TotalCharges)...")
+num_cols_to_scale = ['tenure', 'MonthlyCharges', 'TotalCharges']
 scaler = StandardScaler()
-X_train_scaled = scaler.fit_transform(X_train)
-X_val_scaled = scaler.transform(X_val)
-X_test_scaled = scaler.transform(X_test)
 
-# Convert to DataFrames for easier handling
-X_train_df = pd.DataFrame(X_train_scaled, columns=feature_names)
-X_val_df = pd.DataFrame(X_val_scaled, columns=feature_names)
-X_test_df = pd.DataFrame(X_test_scaled, columns=feature_names)
+# Work on copies to preserve column names and non-numeric (one-hot) features
+X_train_df = X_train.copy()
+X_val_df = X_val.copy()
+X_test_df = X_test.copy()
+
+# Fit on training data only, then transform all splits
+scaler.fit(X_train_df[num_cols_to_scale])
+X_train_df[num_cols_to_scale] = scaler.transform(X_train_df[num_cols_to_scale])
+X_val_df[num_cols_to_scale] = scaler.transform(X_val_df[num_cols_to_scale])
+X_test_df[num_cols_to_scale] = scaler.transform(X_test_df[num_cols_to_scale])
 
 # 9. Handle Class Imbalance with SMOTE (training only)
 print("8. Handling class imbalance with SMOTE (training set only)...")
@@ -240,7 +257,7 @@ early_stopping = callbacks.EarlyStopping(
 )
 
 checkpoint = callbacks.ModelCheckpoint(
-    'models/best_neural_network.keras',
+    os.path.join(MODELS_DIR, 'best_neural_network.keras'),
     monitor='val_auc',
     save_best_only=True,
     mode='max',
@@ -265,8 +282,9 @@ print(f"✓ Training completed in {nn_training_time:.2f} seconds")
 print(f"  Epochs trained: {len(history.history['loss'])}")
 
 # Save final model
-nn_model.save('models/neural_network_model.keras')
-print("✓ Model saved to 'models/neural_network_model.keras'")
+final_nn_path = os.path.join(MODELS_DIR, 'neural_network_model.keras')
+nn_model.save(final_nn_path)
+print(f"✓ Model saved to '{_rel(final_nn_path)}'")
 
 # ============================================================================
 # SECTION 5: BENCHMARK MODELS
@@ -285,8 +303,9 @@ lr_training_time = time.time() - start_time
 print(f"✓ Training completed in {lr_training_time:.2f} seconds")
 
 # Save model
-joblib.dump(lr_model, 'models/logistic_regression_model.pkl')
-print("✓ Model saved to 'models/logistic_regression_model.pkl'")
+lr_model_path = os.path.join(MODELS_DIR, 'logistic_regression_model.pkl')
+joblib.dump(lr_model, lr_model_path)
+print(f"✓ Model saved to '{_rel(lr_model_path)}'")
 
 print("\n\nMODEL 3: RANDOM FOREST (Traditional ML Benchmark)")
 
@@ -304,8 +323,9 @@ rf_training_time = time.time() - start_time
 print(f"✓ Training completed in {rf_training_time:.2f} seconds")
 
 # Save model
-joblib.dump(rf_model, 'models/random_forest_model.pkl')
-print("✓ Model saved to 'models/random_forest_model.pkl'")
+rf_model_path = os.path.join(MODELS_DIR, 'random_forest_model.pkl')
+joblib.dump(rf_model, rf_model_path)
+print(f"✓ Model saved to '{_rel(rf_model_path)}'")
 
 # ============================================================================
 # SECTION 6: MODEL EVALUATION
@@ -334,9 +354,15 @@ def evaluate_model(model, model_name, X_test, y_test, is_keras=False):
     f1 = f1_score(y_test, y_pred, zero_division=0)
     auc = roc_auc_score(y_test, y_pred_prob)
 
-    # Confusion matrix
+    # Confusion matrix and classification report
     cm = confusion_matrix(y_test, y_pred)
     tn, fp, fn, tp = cm.ravel()
+    report = classification_report(
+        y_test, y_pred,
+        target_names=['No Churn', 'Churn'],
+        digits=4,
+        zero_division=0
+    )
 
     return {
         'Model': model_name,
@@ -349,7 +375,8 @@ def evaluate_model(model, model_name, X_test, y_test, is_keras=False):
         'Confusion_Matrix': cm,
         'TN': tn, 'FP': fp, 'FN': fn, 'TP': tp,
         'y_pred': y_pred,
-        'y_pred_prob': y_pred_prob
+        'y_pred_prob': y_pred_prob,
+        'Classification_Report': report
     }
 
 
@@ -405,8 +432,16 @@ for _, row in comparison_df.iterrows():
         f"| {row['Model']} | {row['Accuracy']} | {row['Precision']} | {row['Recall']} | {row['F1-Score']} | {row['ROC-AUC']} | {row['Training Time (s)']} | {row['Inference Time (s)']} |")
 
 # Save comparison data
-comparison_df.to_csv('data_outputs/model_performance_comparison.csv', index=False)
-print("\n✓ Comparison table saved to 'data_outputs/model_performance_comparison.csv'")
+comparison_csv_path = os.path.join(DATA_DIR, 'model_performance_comparison.csv')
+comparison_df.to_csv(comparison_csv_path, index=False)
+print(f"\n✓ Comparison table saved to '{_rel(comparison_csv_path)}'")
+
+# Additional: Print full classification reports
+print("\n\nSECTION 4A: CLASSIFICATION REPORTS (TEST SET)")
+print("-" * 60)
+for model_name in ['Logistic Regression', 'Random Forest', 'Neural Network']:
+    print(f"\n{model_name}:")
+    print(results[model_name]['Classification_Report'])
 
 # ============================================================================
 # SECTION 8: VISUALIZATIONS
@@ -454,8 +489,9 @@ for bar in bars:
             f'{height:.1f}s', ha='center', va='bottom', fontsize=9)
 
 plt.tight_layout()
-plt.savefig('visualizations/model_comparison_bar_chart.png', dpi=300, bbox_inches='tight')
-print("   ✓ Saved as 'visualizations/model_comparison_bar_chart.png'")
+viz_path = os.path.join(VIZ_DIR, 'model_comparison_bar_chart.png')
+plt.savefig(viz_path, dpi=300, bbox_inches='tight')
+print(f"   ✓ Saved as '{_rel(viz_path)}'")
 
 # 2. ROC Curves Comparison
 print("2. Creating ROC curves comparison...")
@@ -471,8 +507,9 @@ plt.ylabel('True Positive Rate', fontsize=12)
 plt.title('ROC Curves Comparison', fontsize=14, fontweight='bold')
 plt.legend(loc='lower right')
 plt.grid(True, alpha=0.3)
-plt.savefig('visualizations/roc_curves_comparison.png', dpi=300, bbox_inches='tight')
-print("   ✓ Saved as 'visualizations/roc_curves_comparison.png'")
+viz_path = os.path.join(VIZ_DIR, 'roc_curves_comparison.png')
+plt.savefig(viz_path, dpi=300, bbox_inches='tight')
+print(f"   ✓ Saved as '{_rel(viz_path)}'")
 
 # 3. Neural Network Training History
 print("3. Creating neural network training history plot...")
@@ -498,8 +535,9 @@ axes[1].grid(True, alpha=0.3)
 
 plt.suptitle('Neural Network Training History', fontsize=15, fontweight='bold')
 plt.tight_layout()
-plt.savefig('visualizations/nn_training_history.png', dpi=300, bbox_inches='tight')
-print("   ✓ Saved as 'visualizations/nn_training_history.png'")
+viz_path = os.path.join(VIZ_DIR, 'nn_training_history.png')
+plt.savefig(viz_path, dpi=300, bbox_inches='tight')
+print(f"   ✓ Saved as '{_rel(viz_path)}'")
 
 # 4. Confusion Matrices Grid
 print("4. Creating confusion matrices grid...")
@@ -518,8 +556,9 @@ for idx, (model_name, metrics) in enumerate(results.items()):
 
 plt.suptitle('Confusion Matrices Comparison', fontsize=14, fontweight='bold')
 plt.tight_layout()
-plt.savefig('visualizations/confusion_matrices_grid.png', dpi=300, bbox_inches='tight')
-print("   ✓ Saved as 'visualizations/confusion_matrices_grid.png'")
+viz_path = os.path.join(VIZ_DIR, 'confusion_matrices_grid.png')
+plt.savefig(viz_path, dpi=300, bbox_inches='tight')
+print(f"   ✓ Saved as '{_rel(viz_path)}'")
 
 # 5. Feature Importance from Random Forest
 print("5. Creating feature importance plot...")
@@ -544,12 +583,14 @@ for i, (bar, importance) in enumerate(zip(bars, feature_importance_df['Importanc
              f'{importance:.4f}', va='center', fontsize=9)
 
 plt.tight_layout()
-plt.savefig('visualizations/feature_importance_plot.png', dpi=300, bbox_inches='tight')
-print("   ✓ Saved as 'visualizations/feature_importance_plot.png'")
+viz_path = os.path.join(VIZ_DIR, 'feature_importance_plot.png')
+plt.savefig(viz_path, dpi=300, bbox_inches='tight')
+print(f"   ✓ Saved as '{_rel(viz_path)}'")
 
 # Save feature importance data
-feature_importance_df.to_csv('data_outputs/feature_importance_scores.csv', index=False)
-print("   ✓ Feature importance scores saved to 'data_outputs/feature_importance_scores.csv'")
+feat_csv_path = os.path.join(DATA_DIR, 'feature_importance_scores.csv')
+feature_importance_df.to_csv(feat_csv_path, index=False)
+print(f"   ✓ Feature importance scores saved to '{_rel(feat_csv_path)}'")
 
 # 6. Precision-Recall Trade-off (Optional)
 print("6. Creating precision-recall curves...")
@@ -566,8 +607,9 @@ plt.ylabel('Precision', fontsize=12)
 plt.title('Precision-Recall Curves', fontsize=14, fontweight='bold')
 plt.legend(loc='upper right')
 plt.grid(True, alpha=0.3)
-plt.savefig('visualizations/precision_recall_curves.png', dpi=300, bbox_inches='tight')
-print("   ✓ Saved as 'visualizations/precision_recall_curves.png'")
+viz_path = os.path.join(VIZ_DIR, 'precision_recall_curves.png')
+plt.savefig(viz_path, dpi=300, bbox_inches='tight')
+print(f"   ✓ Saved as '{_rel(viz_path)}'")
 
 print("\n✓ All visualizations generated successfully!")
 
@@ -620,7 +662,7 @@ print("- Captures complex non-linear patterns in customer behavior")
 print("- Automatically learns feature interactions (e.g., tenure × contract type × monthly charges)")
 print(
     f"- Achieved highest F1-Score ({results['Neural Network']['F1-Score']:.3f}) and ROC-AUC ({results['Neural Network']['ROC-AUC']:.3f})")
-print("- Handles high-dimensional data well after one-hot encoding (30 features)")
+print(f"- Handles high-dimensional data well after one-hot encoding ({len(feature_names)} features)")
 print("- Can be improved further with hyperparameter tuning and more data")
 
 print("\n*Weaknesses:*")
@@ -736,8 +778,8 @@ if demo_features:
     demo_importance = feature_importance_df[feature_importance_df['Feature'].isin(demo_features)]['Importance'].sum()
     print(f"   - Demographic features account for only {demo_importance / total_importance:.1%} of importance")
 
-print("\n**Interpretation of Top Features:**")
-for i, (_, row) in enumerate(feature_importance_df.head(5).iterrows(), 1):
+print("\n**Interpretation of Top 10 Features:**")
+for i, (_, row) in enumerate(feature_importance_df.head(10).iterrows(), 1):
     feature = row['Feature']
     importance = row['Importance']
     if 'tenure' in feature:
@@ -751,4 +793,48 @@ for i, (_, row) in enumerate(feature_importance_df.head(5).iterrows(), 1):
     elif 'OnlineSecurity' in feature or 'TechSupport' in feature:
         interpretation = "Lack of security/support increases churn → bundle these services"
     else:
-        interpretation = "Unknown feature"
+        interpretation = "Service/package attribute influences churn risk → tailor offers accordingly"
+    print(f"{i}. {feature} (importance: {importance:.4f}) - {interpretation}")
+
+# ==========================================================================
+# SECTION 8: VISUALIZATIONS AND MODELS SAVED (SUMMARY)
+# ==========================================================================
+print("\n\nSECTION 8: VISUALIZATIONS GENERATED")
+print("-" * 60)
+viz_files = [
+    'visualizations/model_comparison_bar_chart.png',
+    'visualizations/roc_curves_comparison.png',
+    'visualizations/nn_training_history.png',
+    'visualizations/confusion_matrices_grid.png',
+    'visualizations/feature_importance_plot.png',
+    'visualizations/precision_recall_curves.png'
+]
+for vf in viz_files:
+    print(f"- {vf}")
+
+print("\nSECTION 9: MODELS SAVED")
+print("-" * 60)
+model_files = [
+    'models/logistic_regression_model.pkl',
+    'models/random_forest_model.pkl',
+    'models/neural_network_model.keras',
+    'models/best_neural_network.keras'
+]
+for mf in model_files:
+    print(f"- {mf}")
+
+print("\nSECTION 10: DATA OUTPUTS SAVED")
+print("-" * 60)
+data_files = [
+    'data_outputs/model_performance_comparison.csv',
+    'data_outputs/feature_importance_scores.csv'
+]
+for dfp in data_files:
+    print(f"- {dfp}")
+
+# Optional memory cleanup
+try:
+    keras.backend.clear_session()
+except Exception:
+    pass
+gc.collect()
